@@ -159,6 +159,7 @@ public:
    */
   virtual void CwndEvent (Ptr<TcpSocketState> tcb,
                           const TcpSocketState::TcpCAEvent_t event);
+                          <!-- This function needs to be called when the congestion starts building--!>
 
   /**
    * \brief Returns true when Congestion Control Algorithm implements CongControl
@@ -193,7 +194,12 @@ public:
    *
    * \param tcb internal congestion state
    */
-  virtual void ReduceCwnd (Ptr<TcpSocketState> tcb) = 0;
+  virtual void ReduceCwnd (Ptr<TcpSocketState> tcb) = 0;  
+  /**
+  <!-- This functions needs to be modified in accordance to rledbat draft 
+    for ECN flag --!>
+    **/
+                                                              
 
   // Present in Linux but not in ns-3 yet:
   /* call when ack arrives (optional) */
@@ -209,6 +215,8 @@ public:
    * \return a pointer of the copied object
    */
   virtual Ptr<TcpCongestionOps> Fork () = 0;
+  /** <!-- This function is not required as both the systems uses different type of algo--!?
+   * **/
 };
 
 /**
