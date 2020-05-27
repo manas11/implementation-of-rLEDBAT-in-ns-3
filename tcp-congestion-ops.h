@@ -127,7 +127,7 @@ public:
    * \param rtt last rtt
    */
   virtual void PktsAcked (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
-                          const Time& rtt);
+                          const Time& rtt);                             <!-- this function need to be modified in order to get the information related to the RTT when the packet is acked. --!>
 
   /**
    * \brief Trigger events/calculations specific to a congestion state
