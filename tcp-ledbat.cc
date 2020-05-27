@@ -168,7 +168,7 @@ uint32_t TcpLedbat::BaseDelay ()
   NS_LOG_FUNCTION (this);
   return MinCircBuf (m_baseHistory);
 }
-
+/** the below function needs to be updates as per the rLEDBAT draft **/
 void TcpLedbat::IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
 {
   NS_LOG_FUNCTION (this << tcb << segmentsAcked);
@@ -187,6 +187,10 @@ void TcpLedbat::IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
     }
 }
 
+/** 
+ * <!-- in this function the cwnd = min(cwnd,RCV.WND,rl.WND) --!>
+ * <!-- check for what tcb->m_cWnd.Get() returns --!>
+ * **/
 void TcpLedbat::CongestionAvoidance (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
 {
   NS_LOG_FUNCTION (this << tcb << segmentsAcked);
@@ -227,7 +231,7 @@ void TcpLedbat::CongestionAvoidance (Ptr<TcpSocketState> tcb, uint32_t segmentsA
       tcb->m_ssThresh = tcb->m_cWnd - 1;
     }
 }
-
+// the delay logic needs to updated on RTT basis not on one way delay
 void TcpLedbat::AddDelay (struct OwdCircBuf &cb, uint32_t owd, uint32_t maxlen)
 {
   NS_LOG_FUNCTION (this << owd << maxlen << cb.buffer.size ());
