@@ -1,8 +1,8 @@
 # Implementation-of-rLEDBAT-in-ns-3
------------------------
+
 ## Course Code: CO365 
 ## Course Name: Advanced Computer Networks
--------------------------
+
 ### Overview
 
 rLEDBAT, a receiver-based, less-than-best-effort congestion control algorithm. rLEDBAT is inspired in.<br/>
@@ -47,3 +47,31 @@ RCV.WND = min(fl.WND, rl.WND)
 ```
 SND.WND = min(cwnd , RCV.WND)
 ```
+
+### Avoiding Window Shrinking
+ * The rLEDBAT algorithm increases or decreases the rl.WND according to congestion signals
+ (variations on the estimations of the queueing delay and packet loss).
+ 
+ * If the new congestion window is smaller than the current one, we progressively reduce the advertised receiver window to avoid packet drops.
+ ```
+ For example, if the current congestion window is 500, the next congestion window is 300. Instead of directly advertising 300 as the receiver window, we will subtract the bytes acknowledged(received in this case), hence avoiding the packet drop.
+ ```
+ 
+ * The rLEDBAT algorithm only allows to perform at most one multiplicative
+   decrease per RTT, this allows the receiver to drain enough packets
+   from the packets in-flight to reach the reduced window resulting form
+   the rLEDBAT algorithm without need for resorting to shrinking the
+   receiver window.
+   
+### Window Scale option
+   
+ * The rLEDBAT client should set WS option values lower than 12.(This is as per the recommendation made in the rLEDBAT draft)
+ 
+### Using the RTT to estimate the queueing delay
+
+```
+This section needs to be updated because as per the draft there is no algorithm available.
+We can try using the queueing delay calculation algorithm by replacing the one-way delay by RTT. (Not sure how to do so placing it in Things need to be done)
+```
+
+   
