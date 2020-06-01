@@ -128,3 +128,57 @@ If local.time > end.reduction.time then
       DRAINED.BYTES = 0
       RCV.WND = min(fc.WND, rl.WND.WS)
 ```
+### Parameters 
+```
+T: Target delay
+
+      betal: multiplicative decrease factor in case of packet loss
+
+      betad: multiplicative decrease factor in case of RTT exceeds T
+
+      alpha: additive increase factor.
+```
+
+### Variables
+```
+current_RTTs is an array with the last k measured RTTs
+
+      base_RTTs is an array with the minimum observed RTTs in the last n
+      minutes
+
+      RCV.SEQ is the sequence number of the last byte that was received
+      and acknowledged
+
+      RCV.HGH is the highest sequence number of a received byte (which
+      may not have been acknowledged yet)
+
+      TSE.HGH is the TSecr value contained in the segment containing the
+      byte with sequence number RCV.HGH
+      
+      SEG.SEQ is the sequence number of the incoming segment
+
+      SEG.TSE is the TSecr value of the incoming segment
+
+      SEG.time is the local time at which the incoming segment was
+      received
+
+      SEG.RTT is the latest sample of the RTT
+
+      QD latest estimation of the queueing delay
+
+      rl.WND window calculated by rLEDBAT without taking into account
+      the window shrinking avoidance constraints
+
+      rl.WND.WS window calculated by rLEDBAT after taking into account
+      the window shrinking avoidance constrains
+
+      DRAINED.BYTES number of bytes drained from the flight-size since
+      the last packet sent
+
+      fc.WND window calculated by standard TCP receiver
+
+      end.reduction.time auxiliary variable used to prevent rl.WND from
+      being updated after a window reduction
+```
+
+ NOTE:- The proposed algorithm has been derived after going through the draft algorithm may change and some other variable might be used when actually implemting in NS-3.
