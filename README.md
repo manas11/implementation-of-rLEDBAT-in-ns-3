@@ -76,4 +76,55 @@ We can try using the queueing delay calculation algorithm by replacing the one-w
 
 ### Inter-rLEDBAT fairness
 
-   
+* In rLEDBAT the congestion window is decreased by a multiplicative factor betad when the measured queueing delay is larger than the target T.
+
+* AIMD reduces the large flows rapidly hence allowing space for new flows.
+
+### Reacting to packet loss
+
+### ALgorithm
+The  Below algorithm assumes that we don't use WS option because if we use that and it get more than 11 then the nature of rLEDBAT is not known.
+Also according to the draft a value less than 11 is suggested.
+
+```
+on initialization
+       DRAINED.BYTES = 0
+       base_RTTs set to maximum value
+       current_RTTs set to maximum value
+       rl.WND set to max value
+       end.reduction.time = 0
+```
+```
+on packet arrival
+    DRAINED.BYTES = DRAINED.BYTES + SEG.LEN
+    RTT calculation
+        SEG.RTT = SEG.Time - SEG.TSE (the new sample of the RTT is the time of
+        arrival of the segment minus the time at which the segment containing
+        the TSVal value was issued)
+        Update current_RTTs with SEG.RTT (substitute the oldest RTT sample in
+        the current_RTTs array by SEG.RTT)
+        Update base_RTTs with SEG.RTT (store SEG.RTT in the current current
+        minute position, if SEG.RTT is smaller than the value in that
+        position)
+```
+```
+QD = min(current_RTTs) - min(base_RTTs)
+```
+```
+If local.time > end.reduction.time then
+        If SEG.SEQ < RCV.HGH AND SEG.TSE > TSE.HGH then
+            rl.WND = max(rl.WND*betal, 1)
+            end.reduction.time = local.time + min(current_RTTs)
+        else
+            If QD < T, then rl.WND = rl.WND+ alpha*MSS/rl.WND
+            else QD > T, then rl.WND(t1) = max(rl.WND*beta1, 1)
+
+
+          on sending a packet
+      if rl.WND > rl.WND.WS or (rl.WND.WS - rl.WND) < DRAINED.BYTES then
+          rl.WND.WS = rl.WND
+      else
+          rl.WND.WS = rl.WND.WS - DRAINED.BYTES
+      DRAINED.BYTES = 0
+      RCV.WND = min(fc.WND, rl.WND.WS)
+```
