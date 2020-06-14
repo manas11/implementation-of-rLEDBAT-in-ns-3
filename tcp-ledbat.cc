@@ -24,6 +24,8 @@
 
 #include "ns3/log.h"
 #include "ns3/simulator.h" // Now ()
+#include "tcp-socket-base.h"
+
 
 namespace ns3 {
 
@@ -101,6 +103,11 @@ TcpLedbat::TcpLedbat (void)
   m_sndCwndCnt = 0;
   m_flag = LEDBAT_CAN_SS;
   m_minCwnd = 2;
+  m_rlWnd = 9999;
+  queue_delay = 0;
+  m_endReductionTime = MilliSeconds (0);
+  m_alpha = 2;
+  m_betad = 0.5;
 };
 
 void TcpLedbat::InitCircBuf (struct OwdCircBuf &buffer)
@@ -125,6 +132,11 @@ TcpLedbat::TcpLedbat (const TcpLedbat& sock)
   m_sndCwndCnt = sock.m_sndCwndCnt;
   m_flag = sock.m_flag;
   m_minCwnd = sock.m_minCwnd;
+  m_rlWnd = sock.m_rlWnd;
+  queue_delay = sock.queue_delay;
+  m_endReductionTime = sock.m_endReductionTime;
+  m_alpha = sock.m_alpha;
+  m_betad = sock.m_betad;
 }
 
 TcpLedbat::~TcpLedbat (void)
@@ -168,7 +180,7 @@ uint32_t TcpLedbat::BaseDelay ()
   NS_LOG_FUNCTION (this);
   return MinCircBuf (m_baseHistory);
 }
-/** the below function needs to be updates as per the rLEDBAT draft **/
+
 void TcpLedbat::IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
 {
   NS_LOG_FUNCTION (this << tcb << segmentsAcked);
@@ -187,10 +199,6 @@ void TcpLedbat::IncreaseWindow (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
     }
 }
 
-/** 
- * <!-- in this function the cwnd = min(cwnd,RCV.WND,rl.WND) --!>
- * <!-- check for what tcb->m_cWnd.Get() returns --!>
- * **/
 void TcpLedbat::CongestionAvoidance (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked)
 {
   NS_LOG_FUNCTION (this << tcb << segmentsAcked);
@@ -199,31 +207,37 @@ void TcpLedbat::CongestionAvoidance (Ptr<TcpSocketState> tcb, uint32_t segmentsA
       TcpNewReno::CongestionAvoidance (tcb, segmentsAcked); //letting it fall to TCP behaviour if no timestamps
       return;
     }
-  int64_t queue_delay;
-  double offset;
+  
+  // double offset;
+  //receiver window 
+  uint32_t rWnd = tcb->m_rxBuffer->MaxBufferSize();
   uint32_t cwnd = (tcb->m_cWnd.Get ());
-  uint32_t max_cwnd;
+  // uint32_t max_cwnd;
   uint64_t current_delay = CurrentDelay (&TcpLedbat::MinCircBuf);
   uint64_t base_delay = BaseDelay ();
 
-  if (current_delay > base_delay)
+  if (queue_delay > T)
     {
       queue_delay = static_cast<int64_t> (current_delay - base_delay);
-      offset = m_target.GetMilliSeconds () - queue_delay;
+      rWnd = rWnd*m_betad;
+      // offset = m_target.GetMilliSeconds () - queue_delay;
     }
   else
     {
       queue_delay = static_cast<int64_t> (base_delay - current_delay);
-      offset = m_target.GetMilliSeconds () + queue_delay;
+      // offset = m_target.GetMilliSeconds () + queue_delay;
+      rWnd = rWnd + ((m_alpha * tcb->m_segmentSize )/rWnd);
     }
-  offset *= m_gain;
-  m_sndCwndCnt = static_cast<int32_t> (offset * segmentsAcked * tcb->m_segmentSize);
-  double inc =  (m_sndCwndCnt * 1.0) / (m_target.GetMilliSeconds () * tcb->m_cWnd.Get ());
-  cwnd += (inc * tcb->m_segmentSize);
+  // offset *= m_gain;
+  // m_sndCwndCnt = static_cast<int32_t> (offset * segmentsAcked * tcb->m_segmentSize);
+  // double inc =  (m_sndCwndCnt * 1.0) / (m_target.GetMilliSeconds () * tcb->m_cWnd.Get ());
+  // cwnd += (inc * tcb->m_segmentSize);
 
-  max_cwnd = static_cast<uint32_t>(tcb->m_highTxMark.Get () - tcb->m_lastAckedSeq) + segmentsAcked * tcb->m_segmentSize;
-  cwnd = std::min (cwnd, max_cwnd);
-  cwnd = std::max (cwnd, m_minCwnd * tcb->m_segmentSize);
+  // max_cwnd = static_cast<uint32_t>(tcb->m_highTxMark.Get () - tcb->m_lastAckedSeq) + segmentsAcked * tcb->m_segmentSize;
+  cwnd = std::min (cwnd, std::min (rWnd, tcb->m_rxBuffer->MaxBufferSize()));
+  // cwnd = std::min (cwnd, max_cwnd);
+
+  // cwnd = std::max (cwnd, m_minCwnd * tcb->m_segmentSize);
   tcb->m_cWnd = cwnd;
 
   if (tcb->m_cWnd <= tcb->m_ssThresh)
@@ -231,7 +245,7 @@ void TcpLedbat::CongestionAvoidance (Ptr<TcpSocketState> tcb, uint32_t segmentsA
       tcb->m_ssThresh = tcb->m_cWnd - 1;
     }
 }
-// the delay logic needs to updated on RTT basis not on one way delay
+
 void TcpLedbat::AddDelay (struct OwdCircBuf &cb, uint32_t owd, uint32_t maxlen)
 {
   NS_LOG_FUNCTION (this << owd << maxlen << cb.buffer.size ());
@@ -305,10 +319,12 @@ void TcpLedbat::PktsAcked (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked,
       m_flag |= LEDBAT_VALID_OWD;
     }
   if (rtt.IsPositive ())
-    {
-      AddDelay (m_noiseFilter, tcb->m_rcvTimestampValue - tcb->m_rcvTimestampEchoReply, m_noiseFilterLen);
-      UpdateBaseDelay (tcb->m_rcvTimestampValue - tcb->m_rcvTimestampEchoReply);
+    { 
+      /**
+ * team
+ * **/
+      AddDelay (m_noiseFilter, rtt.GetInteger(), m_noiseFilterLen);
+      UpdateBaseDelay (rtt.GetInteger());
     }
 }
-
 } // namespace ns3

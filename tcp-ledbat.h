@@ -58,7 +58,10 @@ private:
     LEDBAT_CAN_SS     = (1 << 3)   //!< If LEDBAT allows Slow Start
   };
 
+
 public:
+
+  uint64_t T = 100;
   /**
    * \brief Get the type ID.
    * \return the object TypeId
@@ -124,6 +127,11 @@ protected:
    * \param segmentsAcked count of segments ACKed
    */
   virtual void CongestionAvoidance (Ptr<TcpSocketState> tcb, uint32_t segmentsAcked);
+  
+  /**added by team: overriding CalculateWScale()
+   * 
+   * **/
+  // virtual uint8_t CalculateWScale ();
 
 private:
   /**
@@ -195,6 +203,11 @@ private:
   OwdCircBuf m_noiseFilter;   //!< Buffer to store the current delay
   uint32_t m_flag;                   //!< LEDBAT Flag
   uint32_t m_minCwnd;                //!< Minimum cWnd value mentioned in RFC 6817
+  uint32_t m_rlWnd;  //added by team
+  Time m_endReductionTime; //added by team
+  uint32_t queue_delay; //qdelay calculated in adddelay function
+  uint32_t m_alpha;//added by team
+  uint32_t m_betad;//added by team
 };
 
 } // namespace ns3
