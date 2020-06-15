@@ -206,8 +206,8 @@ private:
   uint32_t m_rlWnd;  //added by team
   Time m_endReductionTime; //added by team
   uint32_t queue_delay; //qdelay calculated in adddelay function
-  uint32_t m_alpha;//added by team
-  uint32_t m_betad;//added by team
+  double m_alpha;//added by team
+  double m_betad;//added by team
 };
 
 } // namespace ns3

@@ -103,7 +103,7 @@ TcpLedbat::TcpLedbat (void)
   m_sndCwndCnt = 0;
   m_flag = LEDBAT_CAN_SS;
   m_minCwnd = 2;
-  m_rlWnd = 9999;
+  m_rlWnd = UINT32_MAX;
   queue_delay = 0;
   m_endReductionTime = MilliSeconds (0);
   m_alpha = 2;
@@ -210,40 +210,39 @@ void TcpLedbat::CongestionAvoidance (Ptr<TcpSocketState> tcb, uint32_t segmentsA
   
   // double offset;
   //receiver window 
-  uint32_t rWnd = tcb->m_rxBuffer->MaxBufferSize();
+  // uint32_t rWnd = tcb->m_rxBuffer->MaxBufferSize();
   uint32_t cwnd = (tcb->m_cWnd.Get ());
   // uint32_t max_cwnd;
   uint64_t current_delay = CurrentDelay (&TcpLedbat::MinCircBuf);
   uint64_t base_delay = BaseDelay ();
-
-  if (queue_delay > T)
-    {
       queue_delay = static_cast<int64_t> (current_delay - base_delay);
-      rWnd = rWnd*m_betad;
+  if (queue_delay > m_target.GetMilliSeconds())
+    {
+      m_rlWnd = m_rlWnd*m_betad;
       // offset = m_target.GetMilliSeconds () - queue_delay;
     }
   else
     {
-      queue_delay = static_cast<int64_t> (base_delay - current_delay);
+      // queue_delay = static_cast<int64_t> (base_delay - current_delay);
       // offset = m_target.GetMilliSeconds () + queue_delay;
-      rWnd = rWnd + ((m_alpha * tcb->m_segmentSize )/rWnd);
+      m_rlWnd = m_rlWnd + (double)((double)((double)m_alpha * (double)tcb->m_segmentSize )/(double)m_rlWnd);
     }
   // offset *= m_gain;
   // m_sndCwndCnt = static_cast<int32_t> (offset * segmentsAcked * tcb->m_segmentSize);
   // double inc =  (m_sndCwndCnt * 1.0) / (m_target.GetMilliSeconds () * tcb->m_cWnd.Get ());
   // cwnd += (inc * tcb->m_segmentSize);
-
+  // m_rlWnd = rWnd;
   // max_cwnd = static_cast<uint32_t>(tcb->m_highTxMark.Get () - tcb->m_lastAckedSeq) + segmentsAcked * tcb->m_segmentSize;
-  cwnd = std::min (cwnd, std::min (rWnd, tcb->m_rxBuffer->MaxBufferSize()));
+  cwnd = std::min (cwnd, std::min (m_rlWnd, tcb->m_rxBuffer->MaxBufferSize()));
   // cwnd = std::min (cwnd, max_cwnd);
 
   // cwnd = std::max (cwnd, m_minCwnd * tcb->m_segmentSize);
-  tcb->m_cWnd = cwnd;
+  tcb->m_cWnd.Set(cwnd);
 
-  if (tcb->m_cWnd <= tcb->m_ssThresh)
-    {
-      tcb->m_ssThresh = tcb->m_cWnd - 1;
-    }
+  // if (tcb->m_cWnd <= tcb->m_ssThresh)
+  //   {
+  //     tcb->m_ssThresh = tcb->m_cWnd - 1;
+  //   }
 }
 
 void TcpLedbat::AddDelay (struct OwdCircBuf &cb, uint32_t owd, uint32_t maxlen)
