@@ -2,6 +2,19 @@
 
 ## Course Code: CO365 
 ## Course Name: Advanced Computer Networks
+## Team members: 
+* **Manas Gupta**
+    
+ Github: [manas11](https://github.com/manas11)
+    
+* **Animesh Kumar**
+    
+ Github: [animeshk08](https://github.com/animeshk08)
+
+* **Ayush Kumar**
+   
+ Github: [ayush4190](https://github.com/ayush4190)
+
 
 ### Overview
 
