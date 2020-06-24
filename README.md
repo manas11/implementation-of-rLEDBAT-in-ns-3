@@ -196,6 +196,10 @@ current_RTTs is an array with the last k measured RTTs
 
  NOTE:- The proposed algorithm has been derived after going through the draft algorithm may change and some other variable might be used when actually implemting in NS-3.
  
+ ### Assumptions 
+* No Packet drop 
+* System Clocks are not synchronized.
+
  ### TODO Task
  * How to solve synchronisation problem
  * Modify the existing LEDBAT NS-3 code to make it rLEDBAT instead of writing it from scratch
